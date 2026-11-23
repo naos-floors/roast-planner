@@ -59,6 +59,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 .note{background:light-dark(#fff1e6,#3a2416);border-left:4px solid var(--acc);padding:12px 14px;border-radius:10px;margin:0 0 12px;font-size:16px}
 .tl{list-style:none;margin:16px 0;padding:0}
 .st{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.st .cd{display:block;font:700 14px/1.3 Inter,sans-serif;color:var(--acc);font-variant-numeric:tabular-nums}
 .st time{font:800 24px/1.1 Fraunces,serif;font-variant-numeric:tabular-nums;white-space:nowrap}
 .st p{margin:4px 0 0;font-size:18px;font-weight:600}
 .st.due{background:light-dark(#fff1e6,#3a2416);margin:0 -12px;padding:14px 12px;border-radius:14px;border-top-color:transparent}
@@ -257,7 +258,7 @@ function rPlan(){const {steps,notes}=plan(),sv=serve(),now=Date.now();NG=nudges(
  h+=`<button class="big ${S.cooking?'stop':''}" id="cook">${S.cooking?'Stop cooking mode':'Start cooking'}</button><p class="hint" id="wake">${S.cooking?wakeMsg:'Cooking mode keeps the screen awake and sounds an alarm as each step comes up.'}</p>`;
  h+=`<a class="big alarmbtn" id="alarms" href="#">Start iPhone timers for every step</a><p class="hint">Opens Shortcuts once and starts a Clock timer counting down to each nudge. Your lock screen shows the next five. When one goes off, the banner at the top of this page says what it’s for. This also starts cooking mode here.</p>`;
  h+=`<details class="setup"><summary>Set up the iPhone timers shortcut (once)</summary><ol><li>Open <b>Shortcuts</b> and tap <b>+</b> at the top right. Tap the name at the top, choose <b>Rename</b> and call it exactly <b>Roast Timers</b>.</li><li>Tap <b>Search Actions</b> at the bottom, type <b>split</b> and tap <b>Split Text</b>. It reads “Split <i>Text</i> by New Lines”. Tap the blue <i>Text</i> and choose <b>Shortcut Input</b>. Leave “New Lines” as it is.</li><li>Search <b>repeat</b> and tap <b>Repeat with Each</b>. It should read “Repeat with each item in Split Text”, with an <b>End Repeat</b> below.</li><li>Search <b>timer</b> and tap <b>Start Timer</b>. If it lands below End Repeat, drag it up so it sits between Repeat and End Repeat.</li><li>In Start Timer, tap the number (e.g. 30). In the bar above the keyboard, tap <b>Repeat Item</b>. Check the unit says <b>minutes</b>.</li><li>Tap <b>Done</b>. The first time the planner runs it, iOS asks permission: choose <b>Always Allow</b>.</li></ol><p class="hint">After the timers start, tap the small arrow at the top left to come back. Press the button once per meal: pressing it again adds a second set.</p></details>`;
- h+='<ol class="tl">'+steps.map(s=>`<li class="st" data-key="${s.key}" data-at="${sv-s.off*6e4}"><time>${hm(sv-s.off*6e4)}</time><div><span class="tag t-${s.app.replace(' ','')}">${s.app}</span><p>${s.text}</p><div class="acts">${s.dur?`<button class="tbtn" data-timer="${s.key}" data-dur="${s.dur}">Start ${s.dur} min timer</button>`:''}<button class="dn" data-dn="${s.key}" aria-label="Mark done">✓</button></div></div></li>`).join('')+'</ol>';
+ h+='<ol class="tl">'+steps.map(s=>`<li class="st" data-key="${s.key}" data-at="${sv-s.off*6e4}"><time>${hm(sv-s.off*6e4)}<span class="cd"></span></time><div><span class="tag t-${s.app.replace(' ','')}">${s.app}</span><p>${s.text}</p><div class="acts">${s.dur?`<button class="tbtn" data-timer="${s.key}" data-dur="${s.dur}">Start ${s.dur} min timer</button>`:''}<button class="dn" data-dn="${s.key}" aria-label="Mark done">✓</button></div></div></li>`).join('')+'</ol>';
  h+='<button class="ghost" id="clear">Clear ticks and timers</button>';
  $('#plan').innerHTML=h;tick()}
 function fmt(e){const q=e.q,u=e.u;if(u=='g')return q>=1000?(Math.ceil(q/100)/10)+' kg':Math.ceil(q/50)*50+' g';if(u=='ml')return q>=1000?(Math.ceil(q/100)/10)+' litres':Math.ceil(q/50)*50+' ml';const n=Math.ceil(q-1e-9);if(!u)return String(n);return n+' '+(n>1?(u=='box'?'boxes':u+'s'):u)}
@@ -272,10 +273,11 @@ function rSaved(){const f=LS.get(FK)||[];
  $('#saved').innerHTML=`<section class="card"><h2>Save this menu</h2><div class="row"><input type="text" id="fname" placeholder="e.g. Sunday beef" maxlength="40"><button class="big" id="fsave">Save</button></div><p class="hint" id="fmsg"></p></section><section class="card"><h2>Favourite menus</h2>${f.length?'<ul class="favs">'+f.map((x,i)=>`<li><div><b>${esc(x.name)}</b><span>${esc(summ(x))}</span></div><button data-load="${i}">Load</button><button class="ghost" data-del="${i}">${delArm==i?'Sure?':'Delete'}</button></li>`).join('')+'</ul>':'<p class="hint">Nothing saved yet. Build a menu you like and save it here.</p>'}</section>`}
 function all(){rHead();rMenu();rPlan();rShop();rSaved();show(S.tab)}
 function show(t){S.tab=t;document.querySelectorAll('[data-view]').forEach(v=>v.hidden=v.dataset.view!=t);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('sel',b.dataset.tab==t));save()}
-const mmss=ms=>{const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const mmss=ms=>{const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),z=n=>String(n).padStart(2,'0');return (h?h+':'+z(m):m)+':'+z(s%60)};
 const inTxt=ms=>{const m=Math.round(ms/6e4);return m<1?'now':m<60?`in ${m} min`:`in ${Math.floor(m/60)} h ${m%60} min`};
 function tick(){const now=Date.now();let next=null,due=0;
  document.querySelectorAll('.st').forEach(r=>{const k=r.dataset.key,at=+r.dataset.at,d=!!S.done[k],txt=r.querySelector('p').textContent;
+  const cd=r.querySelector('.cd');if(cd)cd.textContent=S.cooking&&!d&&at>now?mmss(at-now):'';
   r.classList.toggle('done',d);r.classList.toggle('due',!d&&at<=now);if(!d&&at<=now)due++;
   if(!d&&at>now&&!next)next={at,txt};
   const b=r.querySelector('[data-timer]');if(!b)return;const end=S.timers[k];
@@ -285,7 +287,8 @@ function tick(){const now=Date.now();let next=null,due=0;
   else{b.textContent='Time’s up · tap to finish';b.classList.add('ring');if(!S.rang[k]){S.rang[k]=1;save();alarm('Timer done: '+txt)}}});
  const sv=serve();
  if(S.cooking)NG.forEach(n=>{if(n.t<=now&&now-n.t<10*6e4&&!S.alerted['n'+n.t]){S.alerted['n'+n.t]=1;save();alarm(n.label)}});
- $('#next').innerHTML=`<div class="clk">${hm(now)}</div>`+(next?`<div class="lbl">Next up · <span class="when">${hm(next.at)}, ${inTxt(next.at-now)}</span></div><div class="what">${esc(next.txt)}</div>`:`<div class="lbl">${sv>now?'Dinner '+inTxt(sv-now):'All done'}</div><div class="what">${sv>now?'Pick your menu and press Start cooking':'Enjoy your roast!'}</div>`)+(due&&S.cooking?`<div class="lbl">${due} step${due>1?'s':''} due now, see the Plan tab</div>`:'')}
+ const nn=S.cooking&&NG.find(n=>n.t>now);
+ $('#next').innerHTML=nn?`<div class="clk">${mmss(nn.t-now)}</div><div class="lbl">Next nudge at <span class="when">${hm(nn.t)}</span> · it’s ${hm(now)} now</div><div class="what">${esc(nn.label)}</div>`+(due?`<div class="lbl">${due} step${due>1?'s':''} due now, see the Plan tab</div>`:''):`<div class="clk">${hm(now)}</div>`+(next?`<div class="lbl">Next up · <span class="when">${hm(next.at)}, ${inTxt(next.at-now)}</span></div><div class="what">${esc(next.txt)}</div>`:`<div class="lbl">${sv>now?'Dinner '+inTxt(sv-now):'All done'}</div><div class="what">${sv>now?'Pick your menu and press Start cooking':'Enjoy your roast!'}</div>`)+(due&&S.cooking?`<div class="lbl">${due} step${due>1?'s':''} due now, see the Plan tab</div>`:'')}
 
 document.addEventListener('click',e=>{const al=e.target.closest('#alarms');if(al){const r=alarmsURL();if(!r.n){e.preventDefault();alarm('No steps left to set timers for.');return}al.href=r.url;S.phone=1;if(!S.cooking){S.cooking=true;NG.forEach(n=>{if(n.t<Date.now()-6e4)S.alerted['n'+n.t]=1});wake(true)}save();setTimeout(rPlan,300);return}
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
