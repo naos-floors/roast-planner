@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en-GB"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roast Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: warm, practical, Sunday-kitchen helper — big and calm
+   IDEA: a kitchen order ticket pinned above the oven
+   PICTURE: the live "next up" banner and the timeline of hanging times
+   COLOUR and TYPE: gravy-brown band, white ground, tomato-red action; Fraunces titles, Inter body
+   LAYOUT: one column, tabs fixed at the bottom for thumbs */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#1a110c);--ink:light-dark(#2b1a10,#f6ece4);--card:light-dark(#f8f2ed,#261a13);--line:light-dark(#e8dbd0,#3e2d22);--muted:light-dark(#76604f,#bfa898);--band:#5a2e17;--acc:#d2401f;--hob:light-dark(#21628f,#7fb6e0);--air:light-dark(#7a4bb5,#c3a3ec);--mic:light-dark(#2f7d5c,#86d1ae);--rest:light-dark(#9a6a12,#e5b45a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Inter,system-ui,sans-serif;overflow-x:clip;padding-bottom:96px}
+h1,h2{font-family:Fraunces,Georgia,serif;margin:0;line-height:1.05;text-wrap:balance}
+h2{font-size:22px;margin-bottom:12px}
+.band{background:var(--band);color:#fff6ef;padding:20px max(5vw,16px) 22px}
+.hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hd h1{font-size:clamp(30px,8vw,44px)}
+.hd p{margin:0;font-weight:600;opacity:.9}
+.next{margin-top:16px;background:rgba(255,255,255,.1);border-radius:16px;padding:14px 16px}
+.next .clk{font:800 clamp(40px,12vw,60px)/1 Fraunces,serif;font-variant-numeric:tabular-nums}
+.next .lbl{font-size:14px;opacity:.8;margin-top:8px}
+.next .what{font-size:20px;font-weight:700;margin-top:2px}
+.next .when{color:#ffc9b8;font-weight:600}
+main{max-width:720px;margin:0 auto;padding:18px max(4vw,14px)}
+section.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.fld{display:grid;gap:6px}.fld>span{font-size:14px;color:var(--muted);font-weight:600}
+input[type=time],input[type=number],input[type=text]{font:inherit;font-size:20px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;min-height:56px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button{font:inherit;cursor:pointer;color:inherit}
+.step{display:flex;align-items:center;gap:10px}
+.step button{width:56px;height:56px;border-radius:14px;border:2px solid var(--line);background:var(--bg);font-size:28px;font-weight:700}
+.step b{font-size:28px;min-width:36px;text-align:center}
+.meat{border-top:1px solid var(--line);padding:12px 0}.meat:first-of-type{border-top:0}
+.tick{display:flex;align-items:center;gap:14px;min-height:52px;font-size:19px;font-weight:700;cursor:pointer}
+.tick input,.chip input{position:absolute;opacity:0;pointer-events:none}
+.tick span::before{content:"";display:inline-block;width:30px;height:30px;border-radius:9px;border:2px solid var(--muted);vertical-align:-8px;margin-right:12px;background:var(--bg)}
+.tick input:checked+span::before{background:var(--acc) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/22px no-repeat;border-color:var(--acc)}
+.tick input:focus-visible+span::before{outline:3px solid var(--acc);outline-offset:2px}
+.tick.small{font-size:17px;min-height:48px}
+.opts{display:grid;gap:10px;padding:4px 0 6px 44px}
+.hint{color:var(--muted);font-size:15px;margin:0}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.seg button{min-height:52px;border-radius:12px;border:2px solid var(--line);background:var(--bg);font-weight:700;font-size:16px}
+.seg button.sel{background:var(--acc);border-color:var(--acc);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{position:relative;cursor:pointer}
+.chip span{display:flex;align-items:center;min-height:52px;padding:0 18px;border-radius:999px;border:2px solid var(--line);background:var(--bg);font-weight:600}
+.chip input:checked+span{background:var(--acc);border-color:var(--acc);color:#fff}
+.chip input:focus-visible+span{outline:3px solid var(--acc);outline-offset:2px}
+.big{display:block;width:100%;min-height:64px;border-radius:16px;border:0;font-size:20px;font-weight:700;background:var(--acc);color:#fff;margin:8px 0}
+.big.stop{background:var(--ink);color:var(--bg)}
+.ghost{background:none;border:2px solid var(--line);border-radius:14px;min-height:52px;padding:0 18px;font-weight:600;width:100%;margin-top:8px}
+.note{background:light-dark(#fff1e6,#3a2416);border-left:4px solid var(--acc);padding:12px 14px;border-radius:10px;margin:0 0 12px;font-size:16px}
+.tl{list-style:none;margin:16px 0;padding:0}
+.st{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.st time{font:800 24px/1.1 Fraunces,serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.st p{margin:4px 0 0;font-size:18px;font-weight:600}
+.st.due{background:light-dark(#fff1e6,#3a2416);margin:0 -12px;padding:14px 12px;border-radius:14px;border-top-color:transparent}
+.st.due time{color:var(--acc)}
+.st.done{opacity:.45}.st.done p{text-decoration:line-through}
+.tag{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;border:1.5px solid currentColor}
+.t-Oven{color:var(--acc)}.t-Hob{color:var(--hob)}.t-Airfryer{color:var(--air)}.t-Microwave{color:var(--mic)}.t-Rest,.t-Carve,.t-Serve{color:var(--rest)}.t-Prep{color:var(--muted)}
+.acts{display:flex;gap:8px;margin-top:10px}
+.tbtn{flex:1;min-height:56px;border-radius:14px;border:2px solid var(--ink);background:var(--bg);font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.tbtn.run{background:var(--ink);color:var(--bg)}
+.tbtn.ring{background:var(--acc);border-color:var(--acc);color:#fff;animation:pulse 1s infinite}
+.ios{display:flex;align-items:center;justify-content:center;min-height:56px;padding:0 12px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap}
+.setup{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 16px;margin:12px 0}.setup summary{min-height:48px;display:flex;align-items:center;font-weight:700;cursor:pointer}.setup ol{padding-left:22px;margin:0 0 12px}.setup li{margin:6px 0}
+.dn{width:56px;min-height:56px;border-radius:14px;border:2px solid var(--line);background:var(--bg);font-size:24px;font-weight:700;margin-left:auto}
+.st.done .dn{background:var(--ink);color:var(--bg)}
+@keyframes pulse{50%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.tbtn.ring{animation:none}}
+.shop{list-style:none;padding:0;margin:0}
+.shop li{border-top:1px solid var(--line)}.shop li:first-child{border-top:0}
+.shop label{display:flex;gap:12px;align-items:center;min-height:56px;cursor:pointer}
+.shop .q{margin-left:auto;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.shop input{width:26px;height:26px;accent-color:var(--acc);flex:none}
+.shop input:checked~span{text-decoration:line-through;opacity:.5}
+.row{display:flex;gap:10px}.row .big{width:auto;padding:0 22px;margin:0}
+.favs{list-style:none;padding:0;margin:0}
+.favs li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.favs li div{flex:1 1 180px}.favs b{display:block;font-size:18px}.favs span{color:var(--muted);font-size:15px}
+.favs button{min-height:52px;padding:0 18px;border-radius:12px;border:2px solid var(--line);background:var(--bg);font-weight:700}
+.favs button.ghost{width:auto;margin:0}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);z-index:5}
+nav button{min-height:60px;border-radius:14px;border:0;background:none;font-weight:700;font-size:16px;color:var(--muted)}
+nav button.sel{background:var(--band);color:#fff}
+#toast{position:fixed;left:12px;right:12px;top:12px;z-index:9;background:var(--acc);color:#fff;border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center}
+#toast[hidden]{display:none}#toast p{margin:0;flex:1;font-size:19px;font-weight:700}
+#toast button{min-height:56px;padding:0 22px;border-radius:14px;border:0;background:#fff;color:var(--acc);font-weight:800;font-size:18px}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+[data-view][hidden]{display:none}
+</style></head><body>
+<header class="band">
+  <div class="hd"><h1>Roast planner</h1><p id="sum"></p></div>
+  <div class="next" id="next"></div>
+</header>
+<main>
+  <div data-view="menu" id="menu"></div>
+  <div data-view="plan" id="plan" hidden></div>
+  <div data-view="shop" id="shop" hidden></div>
+  <div data-view="saved" id="saved" hidden></div>
+</main>
+<nav>
+  <button data-tab="menu" class="sel">Menu</button>
+  <button data-tab="plan">Plan</button>
+  <button data-tab="shop">Shopping</button>
+  <button data-tab="saved">Saved</button>
+</nav>
+<div id="toast" hidden role="alert"><p></p><button id="tok">OK</button></div>
+<script>
+{
+const $=s=>document.querySelector(s);
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const SK='roastPlanner.v1',FK='roastPlanner.favs';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hm=d=>new Date(d).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+const MEATS=[
+ {id:'beef',name:'Beef',pp:250,rest:30,dn:true,core:d=>({rare:52,medium:58,well:68}[d]),calc:(kg,d)=>({sear:20,st:220,t:160,mins:Math.round(kg*{rare:33,medium:44,well:55}[d])})},
+ {id:'lamb',name:'Lamb',pp:350,rest:20,dn:true,core:d=>({rare:57,medium:62,well:70}[d]),calc:(kg,d)=>({sear:20,st:220,t:170,mins:Math.round(kg*{rare:40,medium:50,well:60}[d])})},
+ {id:'pork',name:'Pork',pp:300,rest:20,crack:true,core:()=>70,calc:kg=>({sear:30,st:220,t:160,mins:Math.round(kg*60)})},
+ {id:'chicken',name:'Chicken',pp:400,rest:15,poultry:true,core:()=>75,calc:kg=>({sear:0,st:180,t:180,mins:Math.round(kg*40+20)})},
+ {id:'turkey',name:'Turkey',pp:500,rest:45,poultry:true,core:()=>75,calc:kg=>({sear:0,st:170,t:170,mins:Math.round(kg*(kg>4.5?33:38)+20)})},
+ {id:'gammon',name:'Gammon',pp:225,rest:15,glaze:true,core:()=>70,calc:kg=>({sear:0,st:160,t:160,mins:Math.round(kg*50+20)})},
+ {id:'duck',name:'Duck',pp:500,rest:15,poultry:true,core:()=>75,calc:kg=>({sear:0,st:180,t:180,mins:Math.round(kg*40+20)})},
+ {id:'nut',name:'Nut roast',fixed:true,rest:10,calc:()=>({sear:0,st:180,t:180,mins:45})}
+];
+const SIDES=[
+ {id:'roast',name:'Roast potatoes',g:'Potatoes',shop:[['Potatoes (Maris Piper or King Edward)',250,'g'],['Goose fat or oil',1,'jar',1]]},
+ {id:'mash',name:'Mash',g:'Potatoes',shop:[['Potatoes (Maris Piper or King Edward)',200,'g'],['Butter',15,'g'],['Milk',30,'ml']]},
+ {id:'parsnips',name:'Roast parsnips',g:'Veg',shop:[['Parsnips',100,'g']]},
+ {id:'carrots',name:'Carrots',g:'Veg',shop:[['Carrots',80,'g']]},
+ {id:'honeycarrots',name:'Honey-roast carrots',g:'Veg',shop:[['Carrots',100,'g'],['Honey',1,'jar',1]]},
+ {id:'broccoli',name:'Broccoli',g:'Veg',shop:[['Broccoli',80,'g']]},
+ {id:'cauli',name:'Cauliflower cheese',g:'Veg',shop:[['Cauliflower',.25,''],['Mature cheddar',25,'g'],['Milk',100,'ml'],['Butter',8,'g'],['Plain flour',8,'g']]},
+ {id:'peas',name:'Peas',g:'Veg',shop:[['Frozen peas',70,'g']]},
+ {id:'beans',name:'Green beans',g:'Veg',shop:[['Green beans',70,'g']]},
+ {id:'sprouts',name:'Sprouts',g:'Veg',shop:[['Brussels sprouts',80,'g']]},
+ {id:'cabbage',name:'Red cabbage',g:'Veg',shop:[['Red cabbage',.15,''],['Cooking apple',.25,'']]},
+ {id:'stuffing',name:'Stuffing',g:'Extras',shop:[['Stuffing mix',1/6,'box']]},
+ {id:'pigs',name:'Pigs in blankets',g:'Extras',shop:[['Chipolatas',3,''],['Streaky bacon',1.5,'rasher']]},
+ {id:'yorkies',name:'Yorkshire puddings',g:'Extras',shop:[['Plain flour',23,'g'],['Eggs',2/3,''],['Milk',35,'ml'],['Vegetable oil',1,'bottle',1]]},
+ {id:'gravy',name:'Gravy',g:'Extras',shop:[['Gravy granules or stock pot',1,'tub',1]]}
+];
+function defTime(){const d=new Date(Date.now()+3*36e5);d.setMinutes(d.getMinutes()<30?30:60,0,0);return hm(d)}
+function fresh(){const meats={};MEATS.forEach(m=>meats[m.id]={on:m.id=='beef',kg:m.id=='beef'?'1.5':'',done:'medium',crackling:true});
+ const sides={};['roast','parsnips','carrots','broccoli','yorkies','gravy'].forEach(k=>sides[k]=true);
+ return {time:defTime(),people:4,meats,sides,done:{},timers:{},rang:{},alerted:{},got:{},cooking:false,tab:'menu'}}
+const S=Object.assign(fresh(),LS.get(SK)||{});
+const save=()=>LS.set(SK,S);
+const resetRun=()=>{S.done={};S.timers={};S.rang={};S.alerted={}};
+
+function serve(){const [h,m]=(S.time||'18:00').split(':').map(Number);const d=new Date();d.setHours(h||0,m||0,0,0);if(d-Date.now()<-4*36e5)d.setDate(d.getDate()+1);return d.getTime()}
+
+function plan(){
+ const st=[],notes=[],cnt={},sd=S.sides;
+ const add=(off,dur,app,text,item,pin)=>{cnt[item]=(cnt[item]||0)+1;st.push({off:Math.round(off),dur:Math.round(dur),app,text,item,pin,key:item+cnt[item]})};
+ const on=MEATS.filter(m=>S.meats[m.id].on),carve=on.length?10:0,temps=new Set();
+ let U=null,first=0,preT=0,ovenFirst=0;
+ on.forEach(m=>{const v=S.meats[m.id],kg=m.fixed?1:parseFloat(v.kg);
+  if(!m.fixed&&!(kg>0)){notes.push(`Enter a weight for the ${m.name.toLowerCase()} to add it to the plan.`);return}
+  const c=m.calc(kg,v.done),total=c.sear+c.mins,out=carve+m.rest,inn=out+total,n=m.name.toLowerCase(),ck=m.crack&&v.crackling;
+  temps.add(c.t);
+  add(inn+(m.poultry?30:60),0,'Prep',`Take the ${n} out of the fridge`+(ck?'. Score the skin, pat it bone dry and rub with salt.':''),m.id);
+  add(inn,c.sear||total,'Oven',c.sear?`${m.name} in at ${c.st}°C fan to brown${ck?' and blister the crackling':''} (${total} min in total for ${kg} kg)`:`${m.name} in at ${c.t}°C fan${m.fixed?'':` (${total} min for ${kg} kg)`}${m.glaze?', wrapped loosely in foil':''}`,m.id);
+  if(c.sear)add(inn-c.sear,c.mins,'Oven',`Turn the oven down to ${c.t}°C fan for the ${n}`,m.id);
+  if(m.glaze)add(out+20,20,'Oven','Unwrap the gammon, score the fat, brush on the glaze and put back uncovered',m.id);
+  add(out,m.rest,'Rest',`${m.name} out. Cover loosely with foil and rest.${m.core?` It should read about ${m.core(v.done)}°C in the thickest part.`:''}`,m.id);
+  if(ck)add(out-5,8,'Air fryer','Crackling not crisp yet? Slice it off and crisp in the air fryer at 200°C',m.id,1);
+  if(inn>first){first=inn;preT=c.sear?c.st:c.t}
+  U=U==null?out:Math.min(U,out);
+ });
+ if(temps.size>1)notes.push(`Your meats like different temperatures (${[...temps].join(' and ')}°C fan). The plan follows the first one in; check each with a meat thermometer.`);
+ let up=U;
+ if(up!=null&&sd.yorkies&&up<32){up=32;notes.push('The oven goes up a few minutes before the meat comes out so the Yorkshire tin gets smoking hot. That won’t hurt the meat.')}
+ const rin=need=>{if(up==null)return 5+need;const hot=up-5;return hot>=need?5+need:Math.round(up+(need-hot)/0.6)};
+ const hot=sd.roast||sd.parsnips||sd.honeycarrots||sd.yorkies;
+ if(up!=null&&hot)add(up,0,'Oven','Turn the oven up to 200°C fan','oven');
+ if(sd.roast){const i=rin(60);ovenFirst=Math.max(ovenFirst,i);
+  add(i+35,0,'Prep','Peel the potatoes and cut into even chunks','roast');
+  add(i+20,10,'Hob','Potatoes into salted boiling water to parboil','roast');
+  add(i+10,0,'Oven','Fat into a roasting tin and into the oven to heat up','roast');
+  add(i+9,0,'Prep','Drain the potatoes, shake to rough up the edges, leave to steam dry','roast');
+  add(i,i-5,'Oven','Potatoes into the hot fat and back in the oven','roast');
+  add(Math.round((i+5)/2),0,'Oven','Turn the roast potatoes','roast');
+  add(5,0,'Oven','Roast potatoes out. Sprinkle with salt','roast')}
+ if(sd.mash){add(55,0,'Prep','Peel and chop the potatoes for mash','mash');add(40,20,'Hob','Mash potatoes on to boil until tender','mash');add(18,0,'Hob','Drain, mash with butter and milk, lid on to keep warm','mash')}
+ if(sd.parsnips){const i=rin(40);ovenFirst=Math.max(ovenFirst,i);add(i+10,0,'Prep','Peel and quarter the parsnips','parsnips');add(i,i-5,'Oven','Parsnips into the oven with a little oil','parsnips')}
+ if(sd.honeycarrots){const i=rin(40);ovenFirst=Math.max(ovenFirst,i);add(i+10,0,'Prep','Peel and halve the carrots for roasting','honeycarrots');add(i,i-5,'Oven','Carrots into the oven with a little oil','honeycarrots');add(15,0,'Oven','Drizzle honey over the roasting carrots','honeycarrots')}
+ if(sd.carrots){add(30,0,'Prep','Peel and slice the carrots','carrots');add(20,15,'Hob','Carrots on to boil','carrots')}
+ if(sd.broccoli)add(12,8,'Hob','Broccoli on to steam or boil','broccoli');
+ if(sd.cauli){ovenFirst=Math.max(ovenFirst,35);add(58,5,'Hob','Cauliflower florets in boiling water for 5 min, then drain','cauli');add(48,10,'Hob','Make the cheese sauce: butter, flour, milk, then the cheese','cauli');add(35,30,'Oven','Cauliflower cheese into the oven','cauli')}
+ if(sd.peas)add(8,4,'Microwave','Peas in the microwave, covered, with a splash of water','peas');
+ if(sd.beans)add(12,6,'Hob','Green beans on to boil','beans');
+ if(sd.sprouts){add(30,0,'Prep','Trim the sprouts and cut a cross in the base','sprouts');add(14,8,'Hob','Sprouts on to boil','sprouts')}
+ if(sd.cabbage){add(70,0,'Prep','Shred the red cabbage and grate the apple','cabbage');add(60,50,'Hob','Red cabbage on low with the apple, a splash of vinegar and sugar, lid on','cabbage')}
+ if(sd.stuffing){add(45,0,'Prep','Make up the stuffing and roll into balls','stuffing');add(25,18,'Air fryer','Stuffing balls into the air fryer at 180°C','stuffing')}
+ if(sd.pigs){add(40,0,'Prep','Wrap the chipolatas in bacon','pigs');add(20,15,'Air fryer','Pigs in blankets into the air fryer at 190°C','pigs')}
+ if(sd.yorkies){ovenFirst=Math.max(ovenFirst,32);add(90,0,'Prep','Make the Yorkshire batter (flour, eggs, milk, pinch of salt) and let it rest','yorkies');add(32,10,'Oven','Oil into the Yorkshire tin and into the oven to get smoking hot','yorkies');add(22,20,'Oven','Pour in the batter quickly. Don’t open the door for 20 min','yorkies')}
+ if(sd.gravy){if(U!=null){add(U-3,10,'Hob','Make the gravy with the meat juices and stock, simmer to thicken','gravy');add(4,2,'Microwave','Reheat the gravy','gravy')}else add(15,10,'Hob','Make the gravy and simmer to thicken','gravy')}
+ if(on.length&&first)add(first+20,0,'Oven',`Preheat the oven to ${preT}°C fan`,'oven');
+ else if(ovenFirst)add(ovenFirst+15,0,'Oven','Preheat the oven to 200°C fan','oven');
+ add(15,0,'Prep','Warm the plates','serve');
+ if(on.length)add(carve,0,'Carve','Carve the meat','serve');
+ add(0,0,'Serve','Dinner is served. Enjoy!','serve');
+ ['Air fryer','Microwave'].forEach(app=>{const ts=st.filter(s=>s.app==app&&s.dur),placed=ts.filter(s=>s.pin);
+  ts.filter(s=>!s.pin).sort((a,b)=>(a.off-a.dur)-(b.off-b.dur)).forEach(s=>{let moved=false,hit;
+   while((hit=placed.find(p=>s.off>p.off-p.dur&&s.off-s.dur<p.off))){s.off=hit.off+s.dur;moved=true}
+   if(moved)s.text+=` (early to free the ${app.toLowerCase()}, keep warm under foil)`;placed.push(s)})});
+ st.sort((a,b)=>b.off-a.off||b.dur-a.dur);
+ return {steps:st,notes};
+}
+
+let ac=null,ringT=null,lock=null,wakeMsg='',delArm=-1;
+function chime(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state=='suspended')ac.resume();const t=ac.currentTime;[0,.3,.6,1.2,1.5,1.8].forEach(o=>{const g=ac.createGain(),os=ac.createOscillator();os.type='triangle';os.frequency.value=880;g.gain.setValueAtTime(.0001,t+o);g.gain.exponentialRampToValueAtTime(.6,t+o+.02);g.gain.exponentialRampToValueAtTime(.0001,t+o+.26);os.connect(g).connect(ac.destination);os.start(t+o);os.stop(t+o+.3)})}catch(e){}}
+function alarm(msg){const t=$('#toast');t.querySelector('p').textContent=msg;t.hidden=false;chime();try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400])}catch(e){}
+ try{if('Notification' in window&&Notification.permission=='granted')new Notification('Roast planner',{body:msg})}catch(e){}
+ clearInterval(ringT);ringT=setInterval(chime,5000)}
+function stopRing(){clearInterval(ringT);ringT=null;$('#toast').hidden=true}
+async function wake(on){
+ if(!on){try{lock&&lock.release()}catch(e){}lock=null;wakeMsg='';return}
+ try{lock=await navigator.wakeLock.request('screen');wakeMsg='Screen will stay awake while cooking mode is on.'}
+ catch(e){wakeMsg='Your phone wouldn’t let this page keep the screen awake. Set auto-lock to Never while you cook, and keep this page open so the alarms can sound.'}
+ const w=$('#wake');if(w)w.textContent=wakeMsg}
+document.addEventListener('visibilitychange',()=>{if(S.cooking&&document.visibilityState=='visible')wake(true)});
+
+function rHead(){$('#sum').textContent=`Dinner at ${S.time} · ${S.people} ${S.people==1?'person':'people'}`}
+function rMenu(){const p=S.people;
+ let h=`<section class="card"><h2>When are you eating?</h2><div class="row2"><label class="fld"><span>Dinner time</span><input type="time" id="time" value="${S.time}"></label><div class="fld"><span>People</span><div class="step"><button data-pp="-1" aria-label="Fewer people">−</button><b>${p}</b><button data-pp="1" aria-label="More people">+</button></div></div></div></section>`;
+ h+=`<section class="card"><h2>Meat</h2>`+MEATS.map(m=>{const v=S.meats[m.id];
+  return `<div class="meat"><label class="tick"><input type="checkbox" data-meat="${m.id}" ${v.on?'checked':''}><span>${m.name}</span></label>${v.on?`<div class="opts">${m.fixed?`<p class="hint">45 min at 180°C fan. About ${Math.ceil(p/6)} needed for ${p}.</p>`:`<label class="fld"><span>Weight in kg</span><input type="number" inputmode="decimal" step="0.1" min="0.3" data-kg="${m.id}" value="${esc(v.kg)}" placeholder="e.g. 1.5"></label><p class="hint">About ${(m.pp*p/1000).toFixed(1)} kg feeds ${p}</p>`}${m.dn?`<div class="seg">${['rare','medium','well'].map(d=>`<button data-done="${m.id}" data-v="${d}" class="${v.done==d?'sel':''}">${{rare:'Rare',medium:'Medium',well:'Well done'}[d]}</button>`).join('')}</div>`:''}${m.crack?`<label class="tick small"><input type="checkbox" data-crack="${m.id}" ${v.crackling?'checked':''}><span>Crackling</span></label>`:''}</div>`:''}</div>`}).join('')+`</section>`;
+ ['Potatoes','Veg','Extras'].forEach(g=>{h+=`<section class="card"><h2>${g}</h2><div class="chips">`+SIDES.filter(s=>s.g==g).map(s=>`<label class="chip"><input type="checkbox" data-side="${s.id}" ${S.sides[s.id]?'checked':''}><span>${s.name}</span></label>`).join('')+`</div></section>`});
+ h+=`<button class="big" data-tab="plan">See my plan</button>`;
+ $('#menu').innerHTML=h}
+function rPlan(){const {steps,notes}=plan(),sv=serve(),now=Date.now();
+ if(steps.length<=2){$('#plan').innerHTML='<p class="empty">Tick some meat and sides on the Menu tab and your plan appears here.</p>';return}
+ const late=steps.some(s=>sv-s.off*6e4<now-6e4&&!S.done[s.key])&&!S.cooking;
+ let h=notes.map(n=>`<p class="note">${n}</p>`).join('')+(late?'<p class="note">Some steps are already past. Tick off what you’ve done, or push dinner later on the Menu tab.</p>':'');
+ h+=`<button class="big ${S.cooking?'stop':''}" id="cook">${S.cooking?'Stop cooking mode':'Start cooking'}</button><p class="hint" id="wake">${S.cooking?wakeMsg:'Cooking mode keeps the screen awake and sounds an alarm as each step comes up.'}</p>`;
+ h+=`<details class="setup"><summary>Set up the iPhone timer button</summary><p class="hint">The small iPhone button starts a timer in your Clock app, so it rings even when the screen is locked. Set this up once:</p><ol><li>Open the <b>Shortcuts</b> app, tap <b>+</b> and name the shortcut exactly <b>Roast Timer</b>.</li><li>Add the action <b>Start Timer</b>.</li><li>Tap its duration, then pick <b>Shortcut Input</b> from the bar above the keyboard, and set the unit to <b>minutes</b>. A “Receive input” line appears at the top by itself; leave it as it is.</li><li>Tap Done. The first time a button runs it, iOS asks permission: choose Always Allow.</li></ol><p class="hint">These buttons only work when the page runs in Safari or from your Home Screen. Inside the Claude app they do nothing.</p></details>`;
+ h+='<ol class="tl">'+steps.map(s=>`<li class="st" data-key="${s.key}" data-at="${sv-s.off*6e4}"><time>${hm(sv-s.off*6e4)}</time><div><span class="tag t-${s.app.replace(' ','')}">${s.app}</span><p>${s.text}</p><div class="acts">${s.dur?`<button class="tbtn" data-timer="${s.key}" data-dur="${s.dur}">Start ${s.dur} min timer</button><a class="ios" href="shortcuts://run-shortcut?name=Roast%20Timer&amp;input=text&amp;text=${s.dur}" aria-label="Start a ${s.dur} minute timer in the iPhone Clock app">iPhone</a>`:''}<button class="dn" data-dn="${s.key}" aria-label="Mark done">✓</button></div></div></li>`).join('')+'</ol>';
+ h+='<button class="ghost" id="clear">Clear ticks and timers</button>';
+ $('#plan').innerHTML=h;tick()}
+function fmt(e){const q=e.q,u=e.u;if(u=='g')return q>=1000?(Math.ceil(q/100)/10)+' kg':Math.ceil(q/50)*50+' g';if(u=='ml')return q>=1000?(Math.ceil(q/100)/10)+' litres':Math.ceil(q/50)*50+' ml';const n=Math.ceil(q-1e-9);if(!u)return String(n);return n+' '+(n>1?(u=='box'?'boxes':u+'s'):u)}
+function shopList(){const p=S.people,list=[],map=new Map();
+ MEATS.forEach(m=>{const v=S.meats[m.id];if(!v.on)return;list.push(m.fixed?['Nut roast',String(Math.ceil(p/6))]:[m.name+(m.crack&&v.crackling?' (skin on)':''),parseFloat(v.kg)>0?v.kg+' kg':'about '+(m.pp*p/1000).toFixed(1)+' kg'])});
+ SIDES.forEach(s=>{if(!S.sides[s.id])return;s.shop.forEach(([n,q,u,fx])=>{const e=map.get(n)||{q:0,u};e.q=fx?1:e.q+q*p;map.set(n,e)})});
+ map.forEach((e,n)=>list.push([n,fmt(e)]));return list}
+function rShop(){const l=shopList();
+ $('#shop').innerHTML=l.length?`<section class="card"><h2>Shopping for ${S.people}</h2><ul class="shop">${l.map(([n,q])=>`<li><label><input type="checkbox" data-got="${esc(n)}" ${S.got[n]?'checked':''}><span>${esc(n)}</span><span class="q">${q}</span></label></li>`).join('')}</ul></section><button class="big" id="copy">Copy list</button><p class="hint" id="copied"></p>`:'<p class="empty">Nothing ticked yet.</p>'}
+const summ=x=>[...MEATS.filter(m=>x.meats[m.id]&&x.meats[m.id].on).map(m=>m.name),Object.values(x.sides).filter(Boolean).length+' sides',x.people+' people'].join(' · ');
+function rSaved(){const f=LS.get(FK)||[];
+ $('#saved').innerHTML=`<section class="card"><h2>Save this menu</h2><div class="row"><input type="text" id="fname" placeholder="e.g. Sunday beef" maxlength="40"><button class="big" id="fsave">Save</button></div><p class="hint" id="fmsg"></p></section><section class="card"><h2>Favourite menus</h2>${f.length?'<ul class="favs">'+f.map((x,i)=>`<li><div><b>${esc(x.name)}</b><span>${esc(summ(x))}</span></div><button data-load="${i}">Load</button><button class="ghost" data-del="${i}">${delArm==i?'Sure?':'Delete'}</button></li>`).join('')+'</ul>':'<p class="hint">Nothing saved yet. Build a menu you like and save it here.</p>'}</section>`}
+function all(){rHead();rMenu();rPlan();rShop();rSaved();show(S.tab)}
+function show(t){S.tab=t;document.querySelectorAll('[data-view]').forEach(v=>v.hidden=v.dataset.view!=t);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('sel',b.dataset.tab==t));save()}
+const mmss=ms=>{const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const inTxt=ms=>{const m=Math.round(ms/6e4);return m<1?'now':m<60?`in ${m} min`:`in ${Math.floor(m/60)} h ${m%60} min`};
+function tick(){const now=Date.now();let next=null,due=0;
+ document.querySelectorAll('.st').forEach(r=>{const k=r.dataset.key,at=+r.dataset.at,d=!!S.done[k],txt=r.querySelector('p').textContent;
+  r.classList.toggle('done',d);r.classList.toggle('due',!d&&at<=now);if(!d&&at<=now)due++;
+  if(!d&&at>now&&!next)next={at,txt};
+  if(S.cooking&&!d&&at<=now&&now-at<10*6e4&&!S.alerted[k]){S.alerted[k]=1;save();alarm(txt)}
+  const b=r.querySelector('[data-timer]');if(!b)return;const end=S.timers[k];
+  b.classList.remove('run','ring');
+  if(!end)b.textContent=`Start ${b.dataset.dur} min timer`;
+  else if(end>now){b.textContent=mmss(end-now)+' left · tap to stop';b.classList.add('run')}
+  else{b.textContent='Time’s up · tap to finish';b.classList.add('ring');if(!S.rang[k]){S.rang[k]=1;save();alarm('Timer done: '+txt)}}});
+ const sv=serve();
+ $('#next').innerHTML=`<div class="clk">${hm(now)}</div>`+(next?`<div class="lbl">Next up · <span class="when">${hm(next.at)}, ${inTxt(next.at-now)}</span></div><div class="what">${esc(next.txt)}</div>`:`<div class="lbl">${sv>now?'Dinner '+inTxt(sv-now):'All done'}</div><div class="what">${sv>now?'Pick your menu and press Start cooking':'Enjoy your roast!'}</div>`)+(due&&S.cooking?`<div class="lbl">${due} step${due>1?'s':''} due now, see the Plan tab</div>`:'')}
+
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(!ac)try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(x){}
+ if(d.tab){show(d.tab);window.scrollTo(0,0);return}
+ if(d.pp){S.people=Math.max(1,Math.min(30,S.people+ +d.pp));save();all();return}
+ if(d.done){S.meats[d.done].done=d.v;save();all();return}
+ if(d.timer){const k=d.timer;if(S.timers[k]){if(S.timers[k]<=Date.now())S.done[k]=1;delete S.timers[k];delete S.rang[k];stopRing()}else{S.timers[k]=Date.now()+d.dur*6e4;S.alerted[k]=1}save();tick();return}
+ if(d.dn){S.done[d.dn]=!S.done[d.dn];S.alerted[d.dn]=1;stopRing();save();tick();return}
+ if(b.id=='tok'){stopRing();return}
+ if(b.id=='cook'){S.cooking=!S.cooking;if(S.cooking){const now=Date.now();document.querySelectorAll('.st').forEach(r=>{if(+r.dataset.at<now-10*6e4)S.alerted[r.dataset.key]=1});try{'Notification' in window&&Notification.permission=='default'&&Notification.requestPermission().catch(()=>{})}catch(x){}wake(true)}else wake(false);save();rPlan();return}
+ if(b.id=='clear'){resetRun();stopRing();save();rPlan();return}
+ if(b.id=='copy'){const t='Roast shopping list ('+S.people+' people)\n'+shopList().map(([n,q])=>`- ${n}: ${q}`).join('\n');Promise.resolve().then(()=>navigator.clipboard.writeText(t)).then(()=>$('#copied').textContent='Copied. Paste it into a message or your notes.',()=>$('#copied').textContent='Couldn’t copy here. Long-press the list to select it instead.');return}
+ if(b.id=='fsave'){const n=$('#fname').value.trim()||'Roast '+new Date().toLocaleDateString('en-GB');const f=LS.get(FK)||[];f.unshift({name:n,time:S.time,people:S.people,meats:JSON.parse(JSON.stringify(S.meats)),sides:{...S.sides}});LS.set(FK,f);delArm=-1;rSaved();$('#fmsg').textContent=LS.get(FK)?'Saved “'+n+'”.':'This browser won’t store favourites here, sorry.';return}
+ if(d.load){const x=(LS.get(FK)||[])[+d.load];if(!x)return;Object.assign(S,{time:x.time,people:x.people,sides:{...x.sides}});MEATS.forEach(m=>S.meats[m.id]=Object.assign({on:false,kg:'',done:'medium',crackling:true},x.meats[m.id]||{}));resetRun();S.cooking=false;wake(false);S.tab='menu';save();all();window.scrollTo(0,0);return}
+ if(d.del){const i=+d.del;if(delArm==i){const f=LS.get(FK)||[];f.splice(i,1);LS.set(FK,f);delArm=-1}else delArm=i;rSaved();return}
+});
+document.addEventListener('change',e=>{const t=e.target,d=t.dataset;
+ if(d.meat){S.meats[d.meat].on=t.checked}else if(d.crack){S.meats[d.crack].crackling=t.checked}else if(d.side){S.sides[d.side]=t.checked}else if(t.id=='time'){if(!t.value)return;S.time=t.value}
+ else if(d.got){S.got[d.got]=t.checked;save();return}else if(d.kg){all();return}else return;
+ resetRun();save();all()});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.kg){S.meats[d.kg].kg=e.target.value;resetRun();save();rHead();rPlan();rShop()}});
+all();if(S.cooking)wake(true);setInterval(tick,1000);
+}
+</script>
+</body></html>
