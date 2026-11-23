@@ -156,7 +156,8 @@ function fresh(){const meats={};MEATS.forEach(m=>meats[m.id]={on:m.id=='beef',kg
  return {time:defTime(),people:4,meats,sides,done:{},timers:{},rang:{},alerted:{},got:{},cooking:false,tab:'menu'}}
 const S=Object.assign(fresh(),LS.get(SK)||{});
 const save=()=>LS.set(SK,S);
-const resetRun=()=>{S.phone=0;S.done={};S.timers={};S.rang={};S.alerted={}};
+const changed=()=>{if(S.phone)S.phoneStale=1};
+const resetRun=()=>{S.phone=0;S.phoneStale=0;S.done={};S.timers={};S.rang={};S.alerted={}};
 
 function serve(){const [h,m]=(S.time||'18:00').split(':').map(Number);const d=new Date();d.setHours(h||0,m||0,0,0);if(d-Date.now()<-4*36e5)d.setDate(d.getDate()+1);return d.getTime()}
 
@@ -167,6 +168,7 @@ function plan(){
  let U=null,first=0,preT=0,ovenFirst=0;
  on.forEach(m=>{const v=S.meats[m.id],kg=m.fixed?1:parseFloat(v.kg);
   if(!m.fixed&&!(kg>0)){notes.push(`Enter a weight for the ${m.name.toLowerCase()} to add it to the plan.`);return}
+  if(!m.fixed&&(kg<0.3||kg>12)){notes.push(`${kg} kg of ${m.name.toLowerCase()} looks wrong. Check the weight is in kilograms (e.g. 1.5).`);if(kg<0.3)return}
   const c=m.calc(kg,v.done),total=c.sear+c.mins,out=carve+m.rest,inn=out+total,n=m.name.toLowerCase(),ck=m.crack&&v.crackling;
   temps.add(c.t);
   add(inn+(m.poultry?30:60),0,'Prep',`Take the ${n} out of the fridge`+(ck?'. Score the skin, pat it bone dry and rub with salt.':''),m.id);
@@ -217,6 +219,9 @@ function plan(){
    if(moved)s.text+=` (early to free the ${app.toLowerCase()}, keep warm under foil)`;placed.push(s)})});
  st.filter(s=>s.end).forEach(s=>add(s.off-s.dur,0,s.app,s.end,s.item));
  st.sort((a,b)=>b.off-a.off||b.dur-a.dur);
+ const peak=f=>{let mx=0;st.filter(f).forEach(a=>{const n=st.filter(f).filter(b=>b.off>a.off-a.dur&&b.off-b.dur<a.off).length;mx=Math.max(mx,n)});return mx};
+ if(peak(x=>x.app=='Hob'&&x.dur)>4)notes.push('At the busiest point that’s more than four pans on the hob. Steam veg in one pan with a lid, or cook the peas in the microwave.');
+ const ov=peak(x=>x.app=='Oven'&&x.dur>=15&&x.item!='oven');if(ov>=5)notes.push(`Up to ${ov} dishes are in the oven at once. Check it all fits, or move something to the air fryer.`);
  return {steps:st,notes};
 }
 const short=t=>t.split(/[.(:]/)[0].replace(/^Crackling not crisp yet\? /,'').trim();
@@ -246,6 +251,7 @@ document.addEventListener('visibilitychange',()=>{if(S.cooking&&document.visibil
 function rHead(){$('#sum').textContent=`Dinner at ${S.time} · ${S.people} ${S.people==1?'person':'people'}`}
 function rMenu(){const p=S.people;
  let h=`<section class="card"><h2>When are you eating?</h2><div class="row2"><label class="fld"><span>Dinner time</span><input type="time" id="time" value="${S.time}"></label><div class="fld"><span>People</span><div class="step"><button data-pp="-1" aria-label="Fewer people">−</button><b>${p}</b><button data-pp="1" aria-label="More people">+</button></div></div></div></section>`;
+ if(S.cooking)h=`<p class="note">You’re cooking. Changes here re-plan the remaining steps straight away.</p>`+h;
  h+=`<section class="card"><h2>Meat</h2>`+MEATS.map(m=>{const v=S.meats[m.id];
   return `<div class="meat"><label class="tick"><input type="checkbox" data-meat="${m.id}" ${v.on?'checked':''}><span>${m.name}</span></label>${v.on?`<div class="opts">${m.fixed?`<p class="hint">45 min at 180°C fan. About ${Math.ceil(p/6)} needed for ${p}.</p>`:`<label class="fld"><span>Weight in kg</span><input type="number" inputmode="decimal" step="0.1" min="0.3" data-kg="${m.id}" value="${esc(v.kg)}" placeholder="e.g. 1.5"></label><p class="hint">About ${(m.pp*p/1000).toFixed(1)} kg feeds ${p}</p>`}${m.dn?`<div class="seg">${['rare','medium','well'].map(d=>`<button data-done="${m.id}" data-v="${d}" class="${v.done==d?'sel':''}">${{rare:'Rare',medium:'Medium',well:'Well done'}[d]}</button>`).join('')}</div>`:''}${m.crack?`<label class="tick small"><input type="checkbox" data-crack="${m.id}" ${v.crackling?'checked':''}><span>Crackling</span></label>`:''}</div>`:''}</div>`}).join('')+`</section>`;
  ['Potatoes','Veg','Extras'].forEach(g=>{h+=`<section class="card"><h2>${g}</h2><div class="chips">`+SIDES.filter(s=>s.g==g).map(s=>`<label class="chip"><input type="checkbox" data-side="${s.id}" ${S.sides[s.id]?'checked':''}><span>${s.name}</span></label>`).join('')+`</div></section>`});
@@ -254,9 +260,9 @@ function rMenu(){const p=S.people;
 function rPlan(){const {steps,notes}=plan(),sv=serve(),now=Date.now();NG=nudges(steps,sv);
  if(steps.length<=2){$('#plan').innerHTML='<p class="empty">Tick some meat and sides on the Menu tab and your plan appears here.</p>';return}
  const late=steps.some(s=>sv-s.off*6e4<now-6e4&&!S.done[s.key])&&!S.cooking;
- let h=notes.map(n=>`<p class="note">${n}</p>`).join('')+(late?'<p class="note">Some steps are already past. Tick off what you’ve done, or push dinner later on the Menu tab.</p>':'');
+ let h=(S.phoneStale?'<p class="note">You changed the menu after starting the iPhone timers, so they no longer match. Clear them in the Clock app and press the iPhone button again.</p>':'')+notes.map(n=>`<p class="note">${n}</p>`).join('')+(late?'<p class="note">Some steps are already past. Tick off what you’ve done, or push dinner later on the Menu tab.</p>':'');
  h+=`<button class="big ${S.cooking?'stop':''}" id="cook">${S.cooking?'Stop cooking mode':'Start cooking'}</button><p class="hint" id="wake">${S.cooking?wakeMsg:'Cooking mode keeps the screen awake and sounds an alarm as each step comes up.'}</p>`;
- h+=`<a class="big alarmbtn" id="alarms" href="#">Start iPhone timers for every step</a><p class="hint">Opens Shortcuts once and starts a Clock timer counting down to each nudge. Your lock screen shows the next five. When one goes off, the banner at the top of this page says what it’s for. This also starts cooking mode here.</p>`;
+ h+=`<a class="big alarmbtn" id="alarms" href="#">${S.phone&&!S.phoneStale?'iPhone timers running':'Start iPhone timers for every step'}</a><p class="hint">Opens Shortcuts once and starts a Clock timer counting down to each nudge. Your lock screen shows the next five. When one goes off, the banner at the top of this page says what it’s for. This also starts cooking mode here.</p>`;
  h+=`<details class="setup"><summary>Set up the iPhone timers shortcut (once)</summary><ol><li>Open <b>Shortcuts</b> and tap <b>+</b> at the top right. Tap the name at the top, choose <b>Rename</b> and call it exactly <b>Roast Timers</b>.</li><li>Tap <b>Search Actions</b> at the bottom, type <b>split</b> and tap <b>Split Text</b>. It reads “Split <i>Text</i> by New Lines”. Tap the blue <i>Text</i> and choose <b>Shortcut Input</b>. Leave “New Lines” as it is.</li><li>Search <b>repeat</b> and tap <b>Repeat with Each</b>. It should read “Repeat with each item in Split Text”, with an <b>End Repeat</b> below.</li><li>Search <b>timer</b> and tap <b>Start Timer</b>. If it lands below End Repeat, drag it up so it sits between Repeat and End Repeat.</li><li>In Start Timer, tap the number (e.g. 30). In the bar above the keyboard, tap <b>Repeat Item</b>. Check the unit says <b>minutes</b>.</li><li>Tap <b>Done</b>. The first time the planner runs it, iOS asks permission: choose <b>Always Allow</b>.</li></ol><p class="hint">After the timers start, tap the small arrow at the top left to come back. Press the button once per meal: pressing it again adds a second set.</p></details>`;
  h+='<ol class="tl">'+steps.map(s=>`<li class="st" data-key="${s.key}" data-at="${sv-s.off*6e4}"><time>${hm(sv-s.off*6e4)}<span class="cd"></span></time><div><span class="tag t-${s.app.replace(' ','')}">${s.app}</span><p>${s.text}</p><div class="acts">${s.dur?`<button class="tbtn" data-timer="${s.key}" data-dur="${s.dur}">Start ${s.dur} min timer</button>`:''}<button class="dn" data-dn="${s.key}" aria-label="Mark done">✓</button></div></div></li>`).join('')+'</ol>';
  h+='<button class="ghost" id="clear">Clear ticks and timers</button>';
@@ -290,7 +296,7 @@ function tick(){const now=Date.now();let next=null,due=0;
  const nn=S.cooking&&NG.find(n=>n.t>now);
  $('#next').innerHTML=nn?`<div class="clk">${mmss(nn.t-now)}</div><div class="lbl">Next nudge at <span class="when">${hm(nn.t)}</span> · it’s ${hm(now)} now</div><div class="what">${esc(nn.label)}</div>`+(due?`<div class="lbl">${due} step${due>1?'s':''} due now, see the Plan tab</div>`:''):`<div class="clk">${hm(now)}</div>`+(next?`<div class="lbl">Next up · <span class="when">${hm(next.at)}, ${inTxt(next.at-now)}</span></div><div class="what">${esc(next.txt)}</div>`:`<div class="lbl">${sv>now?'Dinner '+inTxt(sv-now):'All done'}</div><div class="what">${sv>now?'Pick your menu and press Start cooking':'Enjoy your roast!'}</div>`)+(due&&S.cooking?`<div class="lbl">${due} step${due>1?'s':''} due now, see the Plan tab</div>`:'')}
 
-document.addEventListener('click',e=>{const al=e.target.closest('#alarms');if(al){const r=alarmsURL();if(!r.n){e.preventDefault();alarm('No steps left to set timers for.');return}al.href=r.url;S.phone=1;if(!S.cooking){S.cooking=true;NG.forEach(n=>{if(n.t<Date.now()-6e4)S.alerted['n'+n.t]=1});wake(true)}save();setTimeout(rPlan,300);return}
+document.addEventListener('click',e=>{const al=e.target.closest('#alarms');if(al){if(S.phone&&!S.phoneStale&&!al.dataset.armed){e.preventDefault();al.dataset.armed=1;al.textContent='Already running. Tap again to add another set';return}const r=alarmsURL();if(!r.n){e.preventDefault();alarm('No steps left to set timers for.');return}al.href=r.url;S.phone=1;S.phoneStale=0;if(!S.cooking){S.cooking=true;NG.forEach(n=>{if(n.t<Date.now()-6e4)S.alerted['n'+n.t]=1});wake(true)}save();setTimeout(rPlan,300);return}
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(!ac)try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(x){}
  if(d.tab){show(d.tab);window.scrollTo(0,0);return}
@@ -309,8 +315,8 @@ document.addEventListener('click',e=>{const al=e.target.closest('#alarms');if(al
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset;
  if(d.meat){S.meats[d.meat].on=t.checked}else if(d.crack){S.meats[d.crack].crackling=t.checked}else if(d.side){S.sides[d.side]=t.checked}else if(t.id=='time'){if(!t.value)return;S.time=t.value}
  else if(d.got){S.got[d.got]=t.checked;save();return}else if(d.kg){all();return}else return;
- resetRun();save();all()});
-document.addEventListener('input',e=>{const d=e.target.dataset;if(d.kg){S.meats[d.kg].kg=e.target.value;resetRun();save();rHead();rPlan();rShop()}});
+ changed();save();all()});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.kg){S.meats[d.kg].kg=e.target.value;changed();save();rHead();rPlan();rShop()}});
 all();if(S.cooking)wake(true);setInterval(tick,1000);
 }
 </script>
